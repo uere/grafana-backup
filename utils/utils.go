@@ -29,9 +29,9 @@ func SetGrafanaUrl() {
 }
 
 func MakeDir(name string) error {
-	_, err := os.Stat("test")
+	_, err := os.Stat(name)
 	if os.IsNotExist(err) {
-		errDir := os.MkdirAll("test", 0755)
+		errDir := os.MkdirAll(name, 0755)
 		if errDir != nil {
 			log.Fatal(err)
 			return err

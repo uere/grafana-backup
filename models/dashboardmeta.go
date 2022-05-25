@@ -7,9 +7,11 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+
+	"github.com/uere/grafana-backup/utils"
 )
 
-type Dashboard struct {
+type DashboardMeta struct {
 	Id        int      `json:"id"`
 	Uid       string   `json:"uid"`
 	Title     string   `json:"title"`
@@ -21,14 +23,14 @@ type Dashboard struct {
 	SortMeta  int      `json:"sortMeta"`
 }
 
-func RemoveIndex(d []Dashboard, index int) []Dashboard {
+func RemoveIndex(d []DashboardMeta, index int) []DashboardMeta {
 	return append(d[:index], d[index+1:]...)
 }
 
 // godoc conectar na api do grafana recebido passando a autencicacao recebida e devolve uma lista de dashboards encontradas nesse grafana
 
-func ListDashboards(b *Backup) []Dashboard {
-	var ListDashboards []Dashboard
+func ListDashboards(b *Backup) []DashboardMeta {
+	var ListDashboards []DashboardMeta
 	req, err := http.NewRequest("GET", b.Url+"/api/search?dashboardIds", nil)
 	if err != nil {
 		log.Println("Error on newrequest.\n[ERROR] -", err)
@@ -62,7 +64,7 @@ func ListDashboards(b *Backup) []Dashboard {
 	return NewListDashboards
 }
 
-func GetDashboards(b *Backup, d []Dashboard) {
+func GetDashboards(b *Backup, d []DashboardMeta) {
 	req, _ := http.NewRequest("GET", b.Url+"/api/dashboards/"+d[1].Uri, nil)
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	autorizacao := base64.StdEncoding.EncodeToString([]byte(b.Login + ":" + b.Password))
@@ -78,9 +80,15 @@ func GetDashboards(b *Backup, d []Dashboard) {
 	if err != nil {
 		log.Println("Error while reading the response bytes:", err)
 	}
-	file, _ := json.MarshalIndent(string([]byte(body)), "", " ")
-	err = ioutil.WriteFile("dashboards/"+d[1].Title+".json", file, 0777)
-	if err != nil {
-		log.Println("Error on create File.\n[ERROR] -", err)
+	// fmt.Println(string([]byte(body)))
+	if err := utils.MakeDir("dashboards"); err != nil {
+		log.Println("Error on create directory", err)
+	}
+	if err := utils.CreateFile("dashboards/" + d[1].Title + ".json"); err != nil {
+		log.Println("Error on create directory", err)
+	}
+
+	if err = ioutil.WriteFile("dashboards/"+d[1].Title+".json", []byte(body), 0777); err != nil {
+		log.Println("Error on save File.\n[ERROR] -", err)
 	}
 }
