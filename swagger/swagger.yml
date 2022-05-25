@@ -1,0 +1,13 @@
+swagger: '2.0'
+info:
+  title: Grafana Backup
+  version: '1.0'
+  description: Ferramenta utilizada para fazer backup dos dashboards exibidos no Grafana
+paths:
+  /dashboardMeta:   
+    get:
+      responses:
+        '200':
+          description: Vai conectar no env:$GRAFANA_HOST e pegar a lista do meta dos dashboards
+
+
