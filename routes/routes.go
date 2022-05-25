@@ -8,6 +8,6 @@ import (
 
 func HandleRequest() {
 	r := gin.Default()
-	r.GET("/dashboards", controllers.GetDashboards)
+	r.POST("/dashboards", controllers.ListDashboardsHandleFunc)
 	r.Run()
 }

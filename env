@@ -1,1 +1,3 @@
-export GRAFANA_URL=""
+export GRAFANA_URL="http://localhost:3000"
+export GF_SECURITY_ADMIN_PASSWORD="admin123"
+export GF_SECURITY_ADMIN_USER="admin"

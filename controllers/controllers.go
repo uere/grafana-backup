@@ -7,8 +7,7 @@ import (
 	"github.com/uere/grafana-backup/models"
 )
 
-func GetDashboards(c *gin.Context) {
-	// var dashboards []models.DashboardMeta
+func ListDashboardsHandleFunc(c *gin.Context) {
 	var backup models.Backup
 	if err := c.ShouldBindJSON(&backup); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -21,5 +20,6 @@ func GetDashboards(c *gin.Context) {
 		return
 	}
 	ListDashboards := models.ListDashboards(&backup)
+	models.GetDashboards(&backup, ListDashboards)
 	c.JSON(200, ListDashboards)
 }
