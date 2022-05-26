@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/uere/grafana-backup/utils"
@@ -24,8 +25,27 @@ type DashboardMeta struct {
 	SortMeta  int      `json:"sortMeta"`
 }
 
-func RemoveIndex(d []DashboardMeta, index int) []DashboardMeta {
-	return append(d[:index], d[index+1:]...)
+type metaDados struct {
+	CanAdmin              bool   `json:"canAdmin"`
+	CanEdit               bool   `json:"canEdit"`
+	CanSave               bool   `json:"canSave"`
+	CanStar               bool   `json:"canStar"`
+	Created               string `json:"created"`
+	CreatedBy             string `json:"createdBy"`
+	Expires               string `json:"expires"`
+	FolderId              string `json:"folderId"`
+	FolderTitle           string `json:"folderTitle"`
+	FolderUrl             string `json:"folderUrl"`
+	HasAcl                bool   `json:"hasAcl"`
+	IsFolder              bool   `json:"isFolder"`
+	Provisioned           string `json:"provisioned"`
+	ProvisionedExternalId string `json:"provisionedExternalId"`
+	Slug                  string `json:"slug"`
+	Type                  string `json:"type"`
+	Updated               string `json:"updated"`
+	UpdatedBy             string `json:"updatedBy"`
+	Url                   string `json:"url"`
+	Version               string `json:"version"`
 }
 
 // godoc conectar na api do grafana recebido passando a autencicacao recebida e devolve uma lista de dashboards encontradas nesse grafana
@@ -56,19 +76,13 @@ func ListDashboards(b *Backup) []DashboardMeta {
 	if err != nil {
 		log.Println("Error while on unMarshal:", err)
 	}
-	NewListDashboards := ListDashboards
-	for i, dash := range ListDashboards {
-		if dash.Type == "dash-folder" {
-			NewListDashboards = RemoveIndex(ListDashboards, i)
-		}
-	}
-	return NewListDashboards
+	return ListDashboards
 }
 
 func GetDashboards(b *Backup, d []DashboardMeta) {
 
 	for _, v := range d {
-		nomearquivo := strings.Split(v.Uri, "/")
+
 		req, _ := http.NewRequest("GET", b.Url+"/api/dashboards/"+v.Uri, nil)
 		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 		autorizacao := base64.StdEncoding.EncodeToString([]byte(b.Login + ":" + b.Password))
@@ -84,18 +98,40 @@ func GetDashboards(b *Backup, d []DashboardMeta) {
 		if err != nil {
 			log.Println("Error while reading the response bytes:", err)
 		}
-		// fmt.Println(string([]byte(body)))
-		if err := utils.MakeDir("dashboards"); err != nil {
+		if err := utils.MakeDir("dashboards/general"); err != nil {
 			log.Println("Error on create directory", err)
 		}
-		if err := utils.CreateFile("dashboards/" + nomearquivo[1] + ".json"); err != nil {
-			log.Println("Error on create directory", err)
-		}
+		nomearquivo := strings.Split(v.Uri, "/")
+		if v.Type != "dash-folder" {
+			if err := utils.CreateFile("dashboards/" + nomearquivo[1] + ".json"); err != nil {
+				log.Println("Error on create directory", err)
+			}
 
-		if err = ioutil.WriteFile("dashboards/"+nomearquivo[1]+".json", []byte(body), 0777); err != nil {
+		}
+		arquivo := "dashboards/" + nomearquivo[1] + ".json"
+		if err = ioutil.WriteFile(arquivo, []byte(body), 0644); err != nil {
 			log.Println("Error on save File.\n[ERROR] -", err)
 		}
-
+		//ler o arquivo e move-lo para pasta
+		var dash map[string]interface{}
+		file, _ := ioutil.ReadFile(arquivo)
+		json.Unmarshal([]byte(file), &dash)
+		// fmt.Println(x)
+		for k, v := range dash {
+			if k == "meta" {
+				stringmeta, _ := json.MarshalIndent(v, "", "  ")
+				var meta metaDados
+				// fmt.Println(string(stringmeta))
+				json.Unmarshal(stringmeta, &meta)
+				if !meta.IsFolder {
+					if err := utils.MakeDir("dashboards/" + meta.FolderTitle); err != nil {
+						log.Println("Error on create directory", err)
+					}
+					os.Rename(arquivo, "dashboards/"+meta.FolderTitle+"/"+nomearquivo[1]+"-"+meta.Version+".json")
+				} else {
+					os.Remove(arquivo)
+				}
+			}
+		}
 	}
-
 }
