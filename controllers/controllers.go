@@ -21,5 +21,9 @@ func SaveGrafanaDashboards(c *gin.Context) {
 		return
 	}
 	ListDashboards := models.ListDashboards(&g)
-	c.JSON(200, ListDashboards)
+	models.GetDashboards(&g, ListDashboards)
+	c.JSON(http.StatusOK, gin.H{
+		"grafana":    g.Url,
+		"dashboards": g.Dashboards,
+		"project":    g.Project})
 }

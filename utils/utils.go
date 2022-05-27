@@ -46,7 +46,7 @@ func CreateFile(name string) error {
 		log.Fatal(err)
 		return err
 	}
-	log.Println("Dashboard downloaded " + name)
+	// log.Println("Dashboard downloaded " + name)
 	emptyFile.Close()
 	return nil
 }

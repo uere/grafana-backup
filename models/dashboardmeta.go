@@ -4,11 +4,11 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/uere/grafana-backup/utils"
@@ -46,7 +46,7 @@ type metaDados struct {
 	Updated               string `json:"updated"`
 	UpdatedBy             string `json:"updatedBy"`
 	Url                   string `json:"url"`
-	Version               string `json:"version"`
+	Version               int    `json:"version"`
 }
 
 // godoc conectar na api do grafana recebido passando a autencicacao recebida e devolve uma lista de dashboards encontradas nesse grafana
@@ -59,7 +59,7 @@ func ListDashboards(g *Grafana) []Dashboard {
 	}
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	autorizacao := base64.StdEncoding.EncodeToString([]byte(g.Login + ":" + g.Password))
-	fmt.Println(autorizacao)
+	// fmt.Println(autorizacao)
 	req.Header.Add("Authorization", "Basic "+autorizacao)
 	req.Header.Add("Content-Type", "application/json")
 	client := &http.Client{}
@@ -80,8 +80,12 @@ func ListDashboards(g *Grafana) []Dashboard {
 	return ListDashboards
 }
 
-func GetDashboards(g *Grafana, d []Dashboard) {
+func GetDashboards(g *Grafana, d []Dashboard) *Grafana {
+	var dashcount int
+	var dash map[string]interface{}
 
+	url := strings.Split(string(g.Url), ".")
+	project := url[1] + "/"
 	for _, v := range d {
 
 		req, _ := http.NewRequest("GET", g.Url+"/api/dashboards/"+v.Uri, nil)
@@ -99,7 +103,7 @@ func GetDashboards(g *Grafana, d []Dashboard) {
 		if err != nil {
 			log.Println("Error while reading the response bytes:", err)
 		}
-		if err := utils.MakeDir("dashboards/general"); err != nil {
+		if err := utils.MakeDir("dashboards/"); err != nil {
 			log.Println("Error on create directory", err)
 		}
 		nomearquivo := strings.Split(v.Uri, "/")
@@ -114,10 +118,8 @@ func GetDashboards(g *Grafana, d []Dashboard) {
 			log.Println("Error on save File.\n[ERROR] -", err)
 		}
 		//ler o arquivo e move-lo para pasta
-		var dash map[string]interface{}
 		file, _ := ioutil.ReadFile(arquivo)
 		json.Unmarshal([]byte(file), &dash)
-		// fmt.Println(x)
 		for k, v := range dash {
 			if k == "meta" {
 				stringmeta, _ := json.MarshalIndent(v, "", "  ")
@@ -125,14 +127,23 @@ func GetDashboards(g *Grafana, d []Dashboard) {
 				// fmt.Println(string(stringmeta))
 				json.Unmarshal(stringmeta, &meta)
 				if !meta.IsFolder {
-					if err := utils.MakeDir("dashboards/" + meta.FolderTitle); err != nil {
+					// fmt.Println(meta.Version)
+					if err := utils.MakeDir("dashboards/" + project + meta.FolderTitle); err != nil {
 						log.Println("Error on create directory", err)
 					}
-					os.Rename(arquivo, "dashboards/"+meta.FolderTitle+"/"+nomearquivo[1]+"-"+meta.Version+".json")
+					destiny := "dashboards/" + project + meta.FolderTitle + "/" + nomearquivo[1] + "-v" + strconv.Itoa(meta.Version) + ".json"
+					os.Rename(arquivo, destiny)
+					dashcount = dashcount + 1
+					log.Println("GetDashboards - Saving from " + g.Url + " to " + destiny)
 				} else {
 					os.Remove(arquivo)
 				}
 			}
 		}
 	}
+	log.Println("GetDashboards - Total dashboards saves " + strconv.Itoa(dashcount))
+
+	g.Dashboards = dashcount
+	g.Project = project
+	return g
 }
