@@ -8,6 +8,6 @@ import (
 
 func HandleRequest() {
 	r := gin.Default()
-	r.POST("/dashboards", controllers.ListDashboardsHandleFunc)
+	r.POST("/dashboards", controllers.SaveGrafanaDashboards)
 	r.Run()
 }
