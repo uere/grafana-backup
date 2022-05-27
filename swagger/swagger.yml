@@ -1,13 +1,36 @@
-swagger: '2.0'
+openapi: '3.0.1'
 info:
   title: Grafana Backup
-  version: '1.0'
+  version: '0.0.0'
   description: Ferramenta utilizada para fazer backup dos dashboards exibidos no Grafana
 paths:
-  /dashboardMeta:   
-    get:
-      responses:
+  /dashboard:       
+    post: 
+      summary: 'Vai conectar no grafana passado, listar todos os dashaboards e salva-los'
+      requestBody:
+        required: true
+        content:
+          aplication/json:
+            schema:
+              $ref: '#/components/schemas/Grafana'
+      responses:              
         '200':
-          description: Vai conectar no env:$GRAFANA_HOST e pegar a lista do meta dos dashboards
+          description: vai passar a quantidade de dashboards salvos
+components:
+  schemas:
+    Grafana:
+      properties:
+        url:
+          type: string
+        login:
+          type: string
+        password:
+          type: string
+      required:
+        - url
+        - login
+        - password
+      type: object
 
+   
 

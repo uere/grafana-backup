@@ -7,19 +7,19 @@ import (
 	"github.com/uere/grafana-backup/models"
 )
 
-func ListDashboardsHandleFunc(c *gin.Context) {
-	var backup models.Backup
-	if err := c.ShouldBindJSON(&backup); err != nil {
+func GetDashboards(c *gin.Context) {
+	// var dashboards []models.DashboardMeta
+	var g models.Grafana
+	if err := c.ShouldBindJSON(&g); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"erro": err.Error()})
 		return
 	}
-	if err := models.ValidaBackup(&backup); err != nil {
+	if err := models.ValidateGrafana(&g); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"erro": err.Error()})
 		return
 	}
 	ListDashboards := models.ListDashboards(&backup)
-	models.GetDashboards(&backup, ListDashboards)
 	c.JSON(200, ListDashboards)
 }

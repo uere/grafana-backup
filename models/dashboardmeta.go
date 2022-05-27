@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -13,7 +14,7 @@ import (
 	"github.com/uere/grafana-backup/utils"
 )
 
-type DashboardMeta struct {
+type Dashboard struct {
 	Id        int      `json:"id"`
 	Uid       string   `json:"uid"`
 	Title     string   `json:"title"`
@@ -50,15 +51,15 @@ type metaDados struct {
 
 // godoc conectar na api do grafana recebido passando a autencicacao recebida e devolve uma lista de dashboards encontradas nesse grafana
 
-func ListDashboards(b *Backup) []DashboardMeta {
-	var ListDashboards []DashboardMeta
-	req, err := http.NewRequest("GET", b.Url+"/api/search?dashboardIds", nil)
+func ListDashboards(g *Grafana) []Dashboard {
+	var ListDashboards []Dashboard
+	req, err := http.NewRequest("GET", g.Url+"/api/search?dashboardIds", nil)
 	if err != nil {
 		log.Println("Error on newrequest.\n[ERROR] -", err)
 	}
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	autorizacao := base64.StdEncoding.EncodeToString([]byte(b.Login + ":" + b.Password))
-	// fmt.Println(autorizacao)
+	autorizacao := base64.StdEncoding.EncodeToString([]byte(g.Login + ":" + g.Password))
+	fmt.Println(autorizacao)
 	req.Header.Add("Authorization", "Basic "+autorizacao)
 	req.Header.Add("Content-Type", "application/json")
 	client := &http.Client{}
@@ -79,13 +80,13 @@ func ListDashboards(b *Backup) []DashboardMeta {
 	return ListDashboards
 }
 
-func GetDashboards(b *Backup, d []DashboardMeta) {
+func GetDashboards(g *Grafana, d []Dashboard) {
 
 	for _, v := range d {
 
-		req, _ := http.NewRequest("GET", b.Url+"/api/dashboards/"+v.Uri, nil)
+		req, _ := http.NewRequest("GET", g.Url+"/api/dashboards/"+v.Uri, nil)
 		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-		autorizacao := base64.StdEncoding.EncodeToString([]byte(b.Login + ":" + b.Password))
+		autorizacao := base64.StdEncoding.EncodeToString([]byte(g.Login + ":" + g.Password))
 		req.Header.Add("Authorization", "Basic "+autorizacao)
 		req.Header.Add("Content-Type", "application/json")
 		client := &http.Client{}
